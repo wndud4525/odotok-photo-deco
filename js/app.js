@@ -61,12 +61,18 @@ function warmOff() {
 }
 
 /* 사진 탭에서 보정값이 바뀌면 40ms 묶어서 픽셀 처리 */
-let adjTimer = null;
+let adjTimer = null, adjFullTimer = null;
 function adjSoon(patch) {
   const p = Ed.photo; if (!p) return;
   Object.assign(p.adj, patch);
   if (adjTimer) return;
-  adjTimer = setTimeout(() => { adjTimer = null; Ed.processPhoto(); Ed.render(); }, 40);
+  adjTimer = setTimeout(() => {
+    adjTimer = null;
+    Ed.processPhoto(true);
+    Ed.render();
+    clearTimeout(adjFullTimer);
+    adjFullTimer = setTimeout(() => { Ed.processPhoto(false); Ed.render(); }, 280);
+  }, 40);
 }
 
 function detectAlpha(img) {
@@ -926,7 +932,16 @@ function bindPanel() {
   if (rw) rw.addEventListener('input', () => {
     ST.warmStrength = +rw.value;
     const lab = p.querySelector('#valWarm'); if (lab) lab.textContent = ST.warmStrength;
-    if (Ed.photo) applyWarm(ST.warm, ST.warmStrength);
+    const wpr = WARM_PRESETS[ST.warm] || WARM_PRESETS.cozy;
+    const k = ST.warmStrength / 100;
+    adjSoon({
+      brightness: 100 + (wpr.brightness - 100) * k,
+      contrast: 100 + (wpr.contrast - 100) * k,
+      saturate: 100 + (wpr.saturate - 100) * k,
+      warmth: wpr.warmth * k,
+      lift: wpr.lift * k,
+      tint: { c: wpr.tint.c, a: wpr.tint.a * k, mode: wpr.tint.mode }
+    });
   });
   const rc = p.querySelector('#rngCut');
   if (rc) rc.addEventListener('input', () => {
@@ -1312,6 +1327,8 @@ function exportFactor() {
 
 async function makeBlob() {
   await ensureAllUsedFonts();
+  // 저장 직전에는 축소 미리보기가 아니라 원본 크기로 다시 처리
+  if (Ed.photo && (Ed.photo.adj || Ed.photo.cut)) { clearTimeout(adjFullTimer); Ed.processPhoto(false); }
   const factor = exportFactor();
   const c = Ed.exportCanvas(factor);
   return await new Promise(res => c.toBlob(b => res(b), 'image/png'));

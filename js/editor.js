@@ -350,10 +350,24 @@ Ed.applyAdj = function (patch) {
   this.processPhoto();
 };
 
-Ed.processPhoto = function () {
+Ed.processPhoto = function (fast) {
   const p = this.photo; if (!p) return;
-  const srcC = p.cut || p.base;
+  let srcC = p.cut || p.base;
   if (!srcC) { p.proc = null; return; }
+  // 슬라이더 드래그 중에는 축소본으로 빠르게, 손을 떼면 원본 크기로
+  if (fast) {
+    if (!p._small || p._smallFrom !== srcC) {
+      const k2 = Math.min(1, 720 / Math.max(srcC.width, srcC.height));
+      const sc = document.createElement('canvas');
+      sc.width = Math.max(1, Math.round(srcC.width * k2));
+      sc.height = Math.max(1, Math.round(srcC.height * k2));
+      sc.getContext('2d').drawImage(srcC, 0, 0, sc.width, sc.height);
+      p._small = sc; p._smallFrom = srcC;
+    }
+    srcC = p._small;
+  } else {
+    p._small = null; p._smallFrom = null;
+  }
   const a = p.adj || {};
   const b = a.brightness == null ? 100 : a.brightness;
   const ct = a.contrast == null ? 100 : a.contrast;
