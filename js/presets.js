@@ -118,7 +118,10 @@ const BUBBLES = [
   {id:'wobble', label:'삐뚤 말풍선'},
   {id:'cloud', label:'구름 말풍선'},
   {id:'sharp', label:'각진 메모'},
-  {id:'oval', label:'동그란 말풍선'}
+  {id:'oval', label:'동그란 말풍선'},
+  {id:'starburst', label:'폭발 말풍선'},
+  {id:'imsg', label:'아이메시지'},
+  {id:'thought', label:'3D 생각풍선'}
 ];
 
 const DECOS = [
