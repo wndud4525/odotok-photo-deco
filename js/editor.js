@@ -6,15 +6,106 @@ const Ed = {
   ratio: '4:5',
   bg: '#FFFFFF',
   els: [], nextId: 1, selId: null,
-  photo: null,           // {img, ew, eh, scale, ox, oy, mode:'cover'|'contain', fill}
+  cells: [],             // 칸별 사진 — [{img, ew, eh, scale, ox, oy, mode, adj, ...}] (1장이면 cells[0])
+  activeCell: 0,         // 지금 고른 칸 (사진 보정·교체 대상)
+  layout: 'one',         // one | h2 | v2 | g4 | v6 | g9
+  gap: 0.014,            // 칸 사이 간격 (짧은 변 대비)
+  cellBg: '#FFFFFF',     // 칸 바탕색
+  frameOn: true,         // 틀 프레임 사용
   photoMode: false,
   hist: [], fut: [],
   imgCache: {},
+  tintCache: {},
   _fitScale: 1
 };
 
+/* photo = 지금 고른 칸의 사진. 기존 코드가 Ed.photo 하나로 동작하도록 연결 */
+Object.defineProperty(Ed, 'photo', {
+  get() {
+    if (!this.cells.length) return null;
+    return this.cells[this.activeCell] || null;
+  },
+  set(v) {
+    if (v == null) {
+      if (!this.cells.length) return;
+      if (this.cells.length === 1) this.cells.length = 0;
+      else this.cells[this.activeCell] = null;
+      return;
+    }
+    if (!this.cells.length) this.cells[0] = v;
+    else this.cells[this.activeCell] = v;
+  }
+});
+
 const MEASURE = document.createElement('canvas').getContext('2d');
 const RATIOS = { '1:1': [1080, 1080], '4:5': [1080, 1350], '9:16': [1080, 1920], orig: [1080, 1350] };
+
+/* 콜라주 칸 배치 — [열, 행] */
+const CELLS = { one: [1, 1], h2: [2, 1], v2: [1, 2], g4: [2, 2], v6: [2, 3], g9: [3, 3] };
+
+/* 색 도우미 */
+function hexToRgb(h) {
+  let s = String(h || '#000').replace('#', '').trim();
+  if (s.length === 3) s = s.split('').map(x => x + x).join('');
+  const n = parseInt(s, 16) || 0;
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+function rgbToHex(r, g, b) {
+  const h = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  return '#' + h(r) + h(g) + h(b);
+}
+function mixHex(hex, target, t) {
+  const a = hexToRgb(hex), b = hexToRgb(target);
+  return rgbToHex(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t);
+}
+
+/* 스티커 색 입히기 — 픽셀 연산으로 색만 바꾸고 명암·하이라이트는 살린다
+   (기존 명암 L을 평균 대비 배율로 써서 target 색을 곱한다 → iOS Safari에서도 내보내기 동일) */
+function tintSprite(key, img, color) {
+  const cache = Ed.tintCache || (Ed.tintCache = {});
+  if (cache[key]) return cache[key];
+  const w = Math.max(1, img.naturalWidth || img.width);
+  const h = Math.max(1, img.naturalHeight || img.height);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0, w, h);
+  let ok = true;
+  try {
+    const im = g.getImageData(0, 0, w, h);
+    const d = im.data;
+    const tr = hexToRgb(color).r, tg = hexToRgb(color).g, tb = hexToRgb(color).b;
+    // 피사체 평균 밝기 (알파 있는 픽셀)
+    let sum = 0, n = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 128) continue;
+      sum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      n++;
+    }
+    const avg = n ? sum / n : 200;
+    const base = Math.max(60, Math.min(avg, 220));
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 8) continue;
+      const L = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      const f = Math.max(0, Math.min(1.55, L / base));
+      d[i] = tr * f;
+      d[i + 1] = tg * f;
+      d[i + 2] = tb * f;
+    }
+    g.putImageData(im, 0, 0);
+  } catch (e) { ok = false; }
+  if (!ok) {
+    // 예비: 합성 블렌드
+    g.globalCompositeOperation = 'color';
+    if (g.globalCompositeOperation !== 'color') g.globalCompositeOperation = 'multiply';
+    g.fillStyle = color;
+    g.fillRect(0, 0, w, h);
+    g.globalCompositeOperation = 'destination-in';
+    g.drawImage(img, 0, 0, w, h);
+  }
+  cache[key] = c;
+  return c;
+}
 
 /* ---------- helpers ---------- */
 function mulberry32(a) {
@@ -292,7 +383,7 @@ Ed.addDeco = function (kind, opts) {
     id: uid(), type: 'deco', kind, text: def.text || '',
     w: def.w * k, h: def.h * k, scale: 1,
     x: this.W / 2, y: this.H / 2,
-    fill: kind === 'music' ? PAL.white : (kind === 'badge' ? PAL.lime : null),
+    fill: kind === 'star3d' ? '#D9F99D' : (kind === 'music' ? PAL.white : (kind === 'badge' ? PAL.lime : null)),
     font: 'Pretendard', weight: 700, size: 26 * k, color: PAL.ink,
     seed: Math.floor(Math.random() * 999)
   });
@@ -306,12 +397,103 @@ Ed.push = function (el) {
   return el;
 };
 
+/* ---------- collage (칸 배치) ---------- */
+Ed.cellCount = function () {
+  const d = CELLS[this.layout] || CELLS.one;
+  return d[0] * d[1];
+};
+
+Ed.ensureCells = function () {
+  const n = this.cellCount();
+  if (this.cells.length !== n) {
+    const a = this.cells.slice(0, n);
+    while (a.length < n) a.push(null);
+    this.cells = a;
+  }
+  if (this.activeCell >= n) this.activeCell = 0;
+  return this.cells;
+};
+
+Ed.setFrameOn = function (on) {
+  this.frameOn = !!on;
+  this.cells.forEach(c => { if (c) c.frame = this.frameOn ? (this.frameDefault || null) : null; });
+};
+
+Ed.setLayout = function (name) {
+  const d = CELLS[name] || CELLS.one;
+  const n = d[0] * d[1];
+  const old = this.cells.slice();
+  const oldActive = this.activeCell;
+  const arr = new Array(n).fill(null);
+  if (n === 1) {
+    arr[0] = old[oldActive] || old[0] || null;
+  } else {
+    for (let i = 0; i < Math.min(n, old.length); i++) arr[i] = old[i] || null;
+  }
+  this.cells = arr;
+  this.layout = name;
+  this.activeCell = 0;
+  arr.forEach(c => { if (c) { c.ox = 0; c.oy = 0; c.scale = c.scale || 1; } });
+  this.ensureCells();
+  this.render();
+};
+
+/* 틀이 있으면 그 안쪽, 없으면 여백을 둔 캔버스 전체 */
+Ed.collageArea = function (W, H) {
+  const fr = (this.frameOn && this.frameDefault) ? this.frameDefault : null;
+  if (fr) return { x: fr.x * W, y: fr.y * H, w: fr.w * W, h: fr.h * H, fr };
+  const m = Math.min(W, H) * 0.028;
+  return { x: m, y: m, w: W - 2 * m, h: H - 2 * m, fr: null };
+};
+
+Ed.cellRects = function (W, H) {
+  const d = CELLS[this.layout] || CELLS.one;
+  const cols = d[0], rows = d[1];
+  const a = this.collageArea(W, H);
+  const n = cols * rows;
+  if (n === 1) return [{ x: a.x, y: a.y, w: a.w, h: a.h, i: 0 }];
+  const g = Math.max(2, (this.gap || 0.014) * Math.min(W, H));
+  const cw = (a.w - g * (cols - 1)) / cols;
+  const ch = (a.h - g * (rows - 1)) / rows;
+  const out = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      out.push({ x: a.x + c * (cw + g), y: a.y + r * (ch + g), w: cw, h: ch, i: r * cols + c });
+    }
+  }
+  return out;
+};
+
+Ed.cellAt = function (x, y) {
+  if (this.layout === 'one') return null;
+  const rects = this.cellRects(this.W, this.H);
+  for (const R of rects) {
+    if (x >= R.x && x <= R.x + R.w && y >= R.y && y <= R.y + R.h) return R;
+  }
+  return null;
+};
+
+/* 칸 밖으로 사진이 빠져나가 빈 곳이 보이지 않게 */
+Ed.clampCellOffset = function (cell, R) {
+  if (!cell) return;
+  if (cell.mode !== 'contain' && (cell.scale || 1) < 1) cell.scale = 1;
+  const src = cell.proc || cell.cut || cell.base || cell.img;
+  if (!src) return;
+  const sw = src.width || cell.ew || 1, sh = src.height || cell.eh || 1;
+  const fit = cell.mode === 'contain' ? Math.min : Math.max;
+  const k = fit(R.w / sw, R.h / sh) * (cell.scale || 1);
+  const mx = Math.max(0, (sw * k - R.w) / 2);
+  const my = Math.max(0, (sh * k - R.h) / 2);
+  cell.ox = clamp(cell.ox || 0, -mx, mx);
+  cell.oy = clamp(cell.oy || 0, -my, my);
+};
+
 /* ---------- photo ---------- */
 const PHOTO_MAX = 1600;
 
-/* 사진 작업본(최대 1800px) 만들기 */
-Ed.buildBase = function () {
-  const p = this.photo; if (!p) return;
+/* 사진 작업본(최대 1600px) 만들기 */
+Ed.buildBaseFor = function (p) {
+  if (!p || !p.img) return;
   const k = Math.min(1, PHOTO_MAX / Math.max(p.ew, p.eh, 1));
   const c = document.createElement('canvas');
   c.width = Math.max(1, Math.round(p.ew * k));
@@ -319,20 +501,33 @@ Ed.buildBase = function () {
   c.getContext('2d').drawImage(p.img, 0, 0, c.width, c.height);
   p.base = c;
 };
+Ed.buildBase = function () {
+  this.buildBaseFor(this.photo);
+};
 
-Ed.setPhoto = function (img, opts) {
+/* 사진 객체 만들기 (칸마다 하나씩) */
+Ed.makePhoto = function (img, opts) {
   opts = opts || {};
-  this.photo = {
+  const p = {
     img, ew: img.naturalWidth || img.width, eh: img.naturalHeight || img.height,
     scale: opts.scale || 1, ox: 0, oy: 0, mode: opts.mode || 'cover', fill: PAL.cream,
     adj: Object.assign({ brightness: 100, contrast: 100, saturate: 100, warmth: 0, lift: 0, tint: null }, opts.adj || {}),
-    cut: null, scene: null, proc: null, hasAlpha: !!opts.hasAlpha,
-    frame: opts.frame || this.frameDefault || null
+    cut: null, scene: null, proc: null, hasAlpha: !!opts.hasAlpha, base: null,
+    frame: this.frameOn ? (this.frameDefault || null) : null
   };
-  if (opts.frame !== undefined) this.photo.frame = opts.frame;
-  this.buildBase();
-  if (opts.cut) { this.photo.cut = opts.cut; }
-  if (opts.scene) { this.photo.scene = opts.scene; this.photo.mode = 'contain'; }
+  if (opts.frame !== undefined) p.frame = opts.frame;
+  if (opts.base !== false) this.buildBaseFor(p);
+  return p;
+};
+
+Ed.setPhoto = function (img, opts) {
+  opts = opts || {};
+  this.ensureCells();
+  const isCell = this.layout !== 'one';
+  this.photo = this.makePhoto(img, Object.assign({ base: !isCell }, opts));
+  const p = this.photo;
+  if (opts.cut) { p.cut = opts.cut; }
+  if (opts.scene) { p.scene = opts.scene; p.mode = 'contain'; }
   if (this.ratio === 'orig') {
     const maxH = 1920;
     const w = 1080, h = Math.round(1080 * this.photo.eh / this.photo.ew);
@@ -343,6 +538,27 @@ Ed.setPhoto = function (img, opts) {
   this.render();
 };
 
+/* 칸에 사진 넣기 */
+Ed.setCellPhoto = function (idx, img, opts) {
+  this.ensureCells();
+  if (idx < 0 || idx >= this.cells.length) return null;
+  this.cells[idx] = this.makePhoto(img, Object.assign({ base: false }, opts || {}));
+  this.activeCell = idx;
+  return this.cells[idx];
+};
+
+/* 모든 칸 사진 처리 (내보내기 전) */
+Ed.processAll = function (fast) {
+  this.cells.forEach(c => {
+    if (!c) return;
+    const a = c.adj || {};
+    const flat = (a.brightness == null || a.brightness === 100) && (a.contrast == null || a.contrast === 100) &&
+      (a.saturate == null || a.saturate === 100) && !a.warmth && !a.lift && !a.tint;
+    if (flat) { c.proc = null; return; }
+    this.processPhoto(fast, c);
+  });
+};
+
 /* 보정 적용 (ctx.filter 미사용 — 픽셀 연산, iOS Safari에서도 내보내기와 동일) */
 Ed.applyAdj = function (patch) {
   const p = this.photo; if (!p) return;
@@ -350,9 +566,10 @@ Ed.applyAdj = function (patch) {
   this.processPhoto();
 };
 
-Ed.processPhoto = function (fast) {
-  const p = this.photo; if (!p) return;
+Ed.processPhoto = function (fast, target) {
+  const p = target || this.photo; if (!p) return;
   let srcC = p.cut || p.base;
+  if (!srcC) { this.buildBaseFor(p); srcC = p.base; }
   if (!srcC) { p.proc = null; return; }
   // 슬라이더 드래그 중에는 축소본으로 빠르게, 손을 떼면 원본 크기로
   if (fast) {
@@ -418,7 +635,9 @@ Ed.processPhoto = function (fast) {
 /* 배경 지우기(누끼) — 테두리 색 기반 flood fill + 지역 기울기 허용 */
 Ed.makeCut = function (tolerance) {
   const p = this.photo;
-  if (!p || !p.base) return { ok: false, reason: 'nophoto' };
+  if (!p) return { ok: false, reason: 'nophoto' };
+  if (!p.base) this.buildBaseFor(p);
+  if (!p.base) return { ok: false, reason: 'nophoto' };
   const w = p.base.width, h = p.base.height;
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const g = c.getContext('2d');
@@ -553,6 +772,7 @@ Ed.setScene = function (kind) {
 };
 
 Ed.setRatio = function (r) {
+  const oldW = this.W, oldH = this.H;
   this.ratio = r;
   if (r === 'orig' && this.photo) {
     const w = 1080, h = Math.round(1080 * this.photo.eh / this.photo.ew);
@@ -563,9 +783,14 @@ Ed.setRatio = function (r) {
     const [w, h] = RATIOS[r] || RATIOS['4:5'];
     this.W = w; this.H = h;
   }
+  // 비율이 바뀌면 요소 위치도 같은 비율로 옮겨 구도를 유지
+  if (oldW && oldH && (oldW !== this.W || oldH !== this.H)) {
+    const kx = this.W / oldW, ky = this.H / oldH;
+    this.els.forEach(el => { el.x *= kx; el.y *= ky; });
+  }
   // 요소가 화면 밖으로 나가지 않게 중앙 기준 재배치
   this.els.forEach(el => { el.x = clamp(el.x, 0, this.W); el.y = clamp(el.y, 0, this.H); });
-  if (this.photo) { this.photo.ox = 0; this.photo.oy = 0; this.photo.scale = 1; }
+  this.cells.forEach(c => { if (c) { c.ox = 0; c.oy = 0; c.scale = 1; } });
 };
 
 /* ---------- history ---------- */
@@ -1077,6 +1302,37 @@ function paintDeco(ctx, el) {
   const w = el.w, h = el.h;
   const ink = PAL.ink;
   ctx.textBaseline = 'middle';
+  /* 3D 별 — 색을 그대로 입혀 그리는 별 (색·스포이드 자유) */
+  if (el.kind === 'star3d') {
+    const r = Math.min(w, h) / 2;
+    const base = el.fill || '#D9F99D';
+    const light = mixHex(base, '#FFFFFF', 0.58);
+    const dark = mixHex(base, '#241E17', 0.26);
+    ctx.save();
+    ctx.shadowColor = 'rgba(20,17,14,.22)';
+    ctx.shadowBlur = r * 0.24;
+    ctx.shadowOffsetY = r * 0.07;
+    starPath(ctx, r * 0.92, 5, 0.46);
+    const grd = ctx.createRadialGradient(-r * 0.26, -r * 0.34, r * 0.04, 0, 0, r * 1.05);
+    grd.addColorStop(0, light);
+    grd.addColorStop(0.46, base);
+    grd.addColorStop(1, dark);
+    ctx.fillStyle = grd;
+    ctx.strokeStyle = grd;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = r * 0.2;
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.3, -r * 0.36, r * 0.2, r * 0.1, -0.5, 0, 7);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
   if (el.kind === 'music') {
     ctx.fillStyle = el.fill || PAL.white;
     ctx.fillRect(-w / 2, -h / 2, w, h);
@@ -1259,22 +1515,104 @@ function paintEl(ctx, el) {
     const img = Ed.imgCache[el.src];
     if (img && (img.complete || img.naturalWidth)) {
       const w = el.w * el.scale, h = el.h * el.scale;
+      let src = img;
+      if (el.tint) {
+        try { src = tintSprite(el.src + '|' + el.tint, img, el.tint); } catch (e) { src = img; }
+      }
       if (el.shadow) {
         ctx.save();
         ctx.shadowColor = 'rgba(20,17,14,.22)';
         ctx.shadowBlur = Math.min(w, h) * 0.05;
         ctx.shadowOffsetY = Math.min(w, h) * 0.02;
-        ctx.drawImage(img, -w / 2, -h / 2, w, h);
+        ctx.drawImage(src, -w / 2, -h / 2, w, h);
         ctx.restore();
       }
-      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      ctx.drawImage(src, -w / 2, -h / 2, w, h);
     } else {
       ctx.strokeStyle = '#ccc'; ctx.strokeRect(-el.w / 2, -el.h / 2, el.w, el.h);
     }
   }
 }
 
+/* 콜라주 — 칸마다 사진을 채워 그린다 */
+Ed.drawCollage = function (ctx, W, H) {
+  const a = this.collageArea(W, H);
+  const fr = a.fr;
+  ctx.fillStyle = (fr && fr.bg) || this.bg;
+  ctx.fillRect(0, 0, W, H);
+  const rects = this.cellRects(W, H);
+  const preview = !!this._preview;
+  for (const R of rects) {
+    const cell = this.cells[R.i];
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(R.x, R.y, R.w, R.h);
+    ctx.clip();
+    ctx.fillStyle = this.cellBg || '#FFFFFF';
+    ctx.fillRect(R.x, R.y, R.w, R.h);
+    if (cell && cell.img) {
+      this.clampCellOffset(cell, R);
+      if (cell.scene) {
+        const sc = sceneCanvas(Math.max(1, Math.round(R.w)), Math.max(1, Math.round(R.h)), cell.scene);
+        ctx.drawImage(sc, R.x, R.y, R.w, R.h);
+      }
+      const src = cell.proc || cell.cut || cell.base || cell.img;
+      const sw = src.width || cell.ew || 1;
+      const sh = src.height || cell.eh || 1;
+      const fit = (cell.mode === 'contain' || cell.scene) ? Math.min : Math.max;
+      const k = fit(R.w / sw, R.h / sh) * (cell.scale || 1) * (cell.scene ? 0.88 : 1);
+      const dw = sw * k, dh = sh * k;
+      const dx = R.x + (R.w - dw) / 2 + (cell.ox || 0);
+      const dy = R.y + (R.h - dh) / 2 + (cell.oy || 0);
+      if (cell.scene) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,.68)';
+        ctx.shadowBlur = Math.max(8, dh * 0.035);
+        ctx.shadowOffsetY = dh * 0.018;
+        ctx.drawImage(src, dx, dy, dw, dh);
+        ctx.restore();
+      } else {
+        ctx.drawImage(src, dx, dy, dw, dh);
+      }
+    } else if (preview) {
+      ctx.fillStyle = '#FFFCF2';
+      ctx.fillRect(R.x, R.y, R.w, R.h);
+      ctx.setLineDash([12, 10]);
+      ctx.strokeStyle = 'rgba(20,17,14,.26)';
+      ctx.lineWidth = 2.4;
+      ctx.strokeRect(R.x + 6, R.y + 6, R.w - 12, R.h - 12);
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(20,17,14,.34)';
+      ctx.font = fontOfFamily('Pretendard', Math.min(R.w, R.h) * 0.16, 800);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('＋', R.x + R.w / 2, R.y + R.h / 2);
+    }
+    ctx.restore();
+  }
+  // 지금 고른 칸 표시 (미리보기에서만)
+  if (preview) {
+    const R = rects[this.activeCell];
+    if (R) {
+      ctx.save();
+      ctx.strokeStyle = this.cells[this.activeCell] ? '#B6D919' : '#8FC41A';
+      ctx.lineWidth = 6;
+      ctx.setLineDash(this.cells[this.activeCell] ? [] : [16, 10]);
+      ctx.strokeRect(R.x + 3, R.y + 3, R.w - 6, R.h - 6);
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+  }
+  if (fr && fr.bw) {
+    const bw = fr.bw * W / 1080;
+    ctx.strokeStyle = fr.bc || '#FFFFFF';
+    ctx.lineWidth = bw;
+    ctx.strokeRect(a.x - bw / 2, a.y - bw / 2, a.w + bw, a.h + bw);
+  }
+};
+
 Ed.drawPhoto = function (ctx, W, H) {
+  if (this.cellCount() > 1) return this.drawCollage(ctx, W, H);
   const p = this.photo;
   if (!p) {
     ctx.fillStyle = this.bg;
@@ -1337,6 +1675,8 @@ Ed.drawPhoto = function (ctx, W, H) {
 
 Ed.drawScene = function (ctx, W, H, opt) {
   opt = opt || {};
+  const prevPreview = this._preview;
+  this._preview = !!opt.overlay;
   ctx.save();
   ctx.clearRect(0, 0, W, H);
   this.drawPhoto(ctx, W, H);
@@ -1350,6 +1690,7 @@ Ed.drawScene = function (ctx, W, H, opt) {
   }
   if (opt.overlay) this.drawSelection(ctx);
   ctx.restore();
+  this._preview = prevPreview;
 };
 
 Ed.drawSelection = function (ctx) {

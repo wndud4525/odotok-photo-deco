@@ -126,6 +126,7 @@ const BUBBLES = [
 
 const DECOS = [
   {id:'music', label:'음악 플레이어', w:480, h:158, text:'오늘의 BGM'},
+  {id:'star3d', label:'3D 별 (색 자유)', w:180, h:180},
   {id:'datetag', label:'날짜·장소 태그', w:360, h:64, text:'2026.11.27 · 온천동'},
   {id:'badge', label:'PLUS 배지', w:140, h:52, text:'PLUS'},
   {id:'stamp', label:'스탬프', w:200, h:200, text:'TODAY'},

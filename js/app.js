@@ -23,6 +23,9 @@ const ST = {
   font: 'BM꾸불림체',
   size: 130,
   textColor: PAL.ink,
+  textBg: null,
+  cellTarget: null,
+  eye: null,
   phraseCat: '병맛·재치',
   manifests: { line: [], jelly: [], bam: [] },
   loadedFonts: new Set()
@@ -156,15 +159,25 @@ function dropTplElements() {
   Ed.selId = null;
 }
 
+function resetCellsView() {
+  Ed.cells.forEach(c => {
+    if (!c) return;
+    c.scene = null; c.cut = null; c.proc = null;
+    c.mode = 'cover'; c.scale = 1; c.ox = 0; c.oy = 0;
+  });
+}
+
 function applyTemplate(kind) {
   Ed.setRatio('4:5');
   const W = Ed.W, H = Ed.H;
   dropTplElements();
-  if (Ed.photo) { Ed.photo.scene = null; Ed.photo.cut = null; Ed.photo.mode = 'cover'; Ed.photo.scale = 1; Ed.photo.ox = 0; Ed.photo.oy = 0; }
+  Ed.ensureCells();
+  resetCellsView();
   if (kind === 'cute') {
     Ed.bg = '#FBEFDD';
+    Ed.cellBg = '#FFFFFF';
     Ed.frameDefault = { x: 0.055, y: 0.045, w: 0.89, h: 0.695, r: 0, bw: 9, bc: '#FFFFFF', bg: '#FFFFFF' };
-    if (Ed.photo) { Ed.photo.frame = Ed.frameDefault; Ed.photo.mode = 'cover'; Ed.photo.scale = 1; Ed.photo.ox = 0; Ed.photo.oy = 0; }
+    Ed.setFrameOn(true);
     addTplText('오늘의 귀여움', { font: '온글잎 류류체', size: 96, color: PAL.ink, x: W / 2, y: H * 0.805, tpl: 'cute' });
     addTplText('여기에 소제목', { font: 'Pretendard', weight: 700, size: 34, color: PAL.ink,
       bg: { c: PAL.butter, pad: 0.34, r: 0, bw: 0 }, x: W / 2, y: H * 0.872, tpl: 'cute' });
@@ -184,8 +197,9 @@ function applyTemplate(kind) {
     if (Ed.photo) applyWarm('cozy', 55);
   } else {
     Ed.bg = '#FFFFFF';
+    Ed.cellBg = '#FFFFFF';
     Ed.frameDefault = { x: 0.06, y: 0.05, w: 0.88, h: 0.665, r: 0, bw: 3, bc: PAL.ink, bg: '#FFFFFF' };
-    if (Ed.photo) { Ed.photo.frame = Ed.frameDefault; Ed.photo.mode = 'cover'; Ed.photo.scale = 1; Ed.photo.ox = 0; Ed.photo.oy = 0; }
+    Ed.setFrameOn(true);
     addTplText('오늘의 기록', { font: '느좋체', size: 94, color: PAL.ink, x: W / 2, y: H * 0.79, tpl: 'record' });
     addTplText('한 줄 소제목', { font: 'Pretendard', weight: 700, size: 33, color: PAL.ink,
       bg: { c: PAL.lime, pad: 0.34, r: 0, bw: 0 }, x: W / 2, y: H * 0.858, tpl: 'record' });
@@ -233,6 +247,233 @@ function toast(msg, ms) {
   toastTimer = setTimeout(() => { t.hidden = true; }, ms || 2200);
 }
 
+/* ═════════ 색: 자주 쓰는 파스텔 + 직접 고르기 + 스포이드 ═════════ */
+const PASTELS = [
+  { c: '#D9F99D', n: '연두' }, { c: '#C7F284', n: '연두2' },
+  { c: '#FEF3A1', n: '연노랑' }, { c: '#FFF59D', n: '연노랑2' },
+  { c: '#FFD1DC', n: '연핑크' }, { c: '#FBCFE8', n: '연핑크2' },
+  { c: '#BAE6FD', n: '연하늘' }, { c: '#CFE9FF', n: '연하늘2' },
+  { c: '#FFF6E3', n: '크림' }, { c: '#FFFFFF', n: '화이트' }, { c: '#14110E', n: '블랙' }
+];
+const BUBBLE_COLORS = [PAL.white, PAL.cream, PAL.butter, PAL.lime, PAL.mint, PAL.sky, PAL.rose, PAL.lav, PAL.ink];
+
+function normHex(c) {
+  if (!c) return '';
+  const s = String(c);
+  if (s[0] === '#') return s.toUpperCase();
+  const m = s.match(/rgba?\(([^)]+)\)/);
+  if (m) {
+    const a = m[1].split(',').map(Number);
+    return rgbToHex(a[0], a[1], a[2]).toUpperCase();
+  }
+  return s.toUpperCase();
+}
+function sameColor(a, b) { return !!a && !!b && normHex(a) === normHex(b); }
+
+function tintLabel(el) {
+  if (!el) return '스티커 색';
+  if (el.type === 'deco' && el.kind === 'star3d') return '별 색';
+  if (el.type === 'sticker' && /star|별/i.test(el.src || '')) return '별 색';
+  if (el.type === 'sticker' && /heart|하트/i.test(el.src || '')) return '하트 색';
+  return '스티커 색';
+}
+
+/* 지금 어떤 요소의 어떤 색을 바꾸는지 */
+function colorSlot(kind) {
+  const el = selected();
+  if (kind === 'tcolor') return { label: '글자색', cur: el && hasText(el) ? (el.color || PAL.ink) : ST.textColor };
+  if (kind === 'tbg') return { label: '직각 박스 배경', cur: el ? ((el.bg && el.bg.c) || (el.type === 'stack' ? el.fill : null)) : ST.textBg };
+  if (kind === 'box') return { label: '박스 색', cur: el && el.type === 'box' ? (el.fill || el.bc) : ST.boxColor };
+  if (kind === 'bubble') return { label: '말풍선 색', cur: el && el.type === 'bubble' ? el.fill : ST.bubbleFill };
+  if (kind === 'thought') return { label: '생각풍선 색', cur: el && el.type === 'thought' ? el.fill : '#FFFFFF' };
+  if (kind === 'tint') {
+    return { label: tintLabel(el), cur: el ? ((el.type === 'deco') ? el.fill : el.tint) : null };
+  }
+  if (kind === 'bg') return { label: '바탕색', cur: Ed.bg };
+  return { label: '색', cur: null };
+}
+
+function applyColor(kind, c) {
+  if (!c) return;
+  const el = selected();
+  if (kind === 'tcolor') {
+    if (el && hasText(el)) { el.color = c; if (el.type === 'text') el.presetId = null; }
+    else ST.textColor = c;
+  } else if (kind === 'tbg') {
+    if (el && el.type === 'text') el.bg = { c, pad: (el.bg && el.bg.pad) || 0.32, r: 0, bw: (el.bg && el.bg.bw) || 0 };
+    else if (el && el.type === 'stack') el.fill = c;
+    else if (el && el.type === 'box') el.fill = c;
+    else if (el && el.type === 'bubble') el.fill = c;
+    else ST.textBg = c;
+  } else if (kind === 'box') {
+    if (el && el.type === 'box') { if (el.style === 'frame') el.bc = c; else el.fill = c; }
+    else { ST.boxColor = c; addBox(c, ST.boxStyle); return; }
+    ST.boxColor = c;
+  } else if (kind === 'bubble') {
+    if (el && el.type === 'bubble') el.fill = c;
+    ST.bubbleFill = c;
+  } else if (kind === 'thought') {
+    if (el && el.type === 'thought') el.fill = c;
+  } else if (kind === 'tint') {
+    if (el && el.type === 'sticker') el.tint = c;
+    else if (el && el.type === 'deco' && el.kind === 'star3d') el.fill = c;
+  } else if (kind === 'bg') {
+    Ed.bg = c;
+  }
+  Ed.render();
+}
+
+/* 색 한 벌 — 파스텔 칩 → 직접 고르기/스포이드 → 기본 팔레트 */
+function colorCtl(kind, opt) {
+  opt = opt || {};
+  const info = colorSlot(kind);
+  const cur = info.cur;
+  const pal = opt.palette || BOX_COLORS.map(o => o.c);
+  const hex = normHex(cur);
+  return `<div class="cc" data-cc="${kind}">
+    <div class="cc-head"><span>${info.label}</span><b class="cc-hex">${hex || '없음'}</b></div>
+    <div class="sw-row pastel">
+      ${PASTELS.map(p => `<button class="sw ${sameColor(cur, p.c) ? 'on' : ''}" data-pc="${p.c}" data-pk="${kind}" style="background:${p.c}" title="${p.n}"></button>`).join('')}
+    </div>
+    <div class="row cc-tools">
+      <label class="chip sm cc-native">🎨 직접 고르기<input type="color" data-pick="${kind}" value="${/^#[0-9A-F]{6}$/.test(hex) ? hex : '#FFFFFF'}"></label>
+      <button class="chip sm eye ${Eye.active && Eye.kind === kind ? 'on' : ''}" data-eye="${kind}">💧 스포이드</button>
+    </div>
+    ${opt.noPalette ? '' : `<div class="sw-row">${pal.map(c => `<button class="sw ${sameColor(cur, c) ? 'on' : ''}" data-pc="${c}" data-pk="${kind}" style="background:${c}"></button>`).join('')}</div>`}
+  </div>`;
+}
+
+/* 색 버튼 묶음 바인딩 (패널·빠른 색 띠 공용) */
+function bindColorControls(scope) {
+  scope.querySelectorAll('[data-pc]').forEach(b => b.addEventListener('click', () => {
+    applyColor(b.dataset.pk, b.dataset.pc);
+    renderPanel();
+  }));
+  scope.querySelectorAll('[data-pick]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      applyColor(inp.dataset.pick, inp.value);
+      const head = inp.closest('.cc');
+      const lab = head && head.querySelector('.cc-hex');
+      if (lab) lab.textContent = normHex(inp.value);
+    });
+  });
+  scope.querySelectorAll('[data-eye]').forEach(b => b.addEventListener('click', () => startEyedrop(b.dataset.eye)));
+}
+
+/* ── 스포이드: 사진 위 픽셀 색 뽑기 ── */
+const Eye = { kind: null, active: false };
+
+function startEyedrop(kind) {
+  if (!Ed.cells.some(Boolean) && !Ed.photo) { toast('먼저 사진을 불러와 주세요'); return; }
+  Eye.kind = kind; Eye.active = true;
+  const bar = $('#eyeBar');
+  if (bar) {
+    bar.hidden = false;
+    bar.querySelector('span').textContent = '사진을 터치하면 그 색을 가져와요';
+  }
+  cv.style.cursor = 'crosshair';
+  updateSelbar();
+  renderPanel();
+}
+function endEyedrop() {
+  const k = Eye.kind;
+  Eye.active = false; Eye.kind = null;
+  const bar = $('#eyeBar'); if (bar) bar.hidden = true;
+  cv.style.cursor = '';
+  updateSelbar();
+  return k;
+}
+
+function pickColorAt(x, y) {
+  try {
+    const k = Math.min(1, 640 / Math.max(Ed.W, Ed.H));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(Ed.W * k));
+    c.height = Math.max(1, Math.round(Ed.H * k));
+    const g = c.getContext('2d');
+    g.scale(c.width / Ed.W, c.height / Ed.H);
+    Ed.drawPhoto(g, Ed.W, Ed.H);
+    const cx = Math.round(x * k), cy = Math.round(y * k);
+    const sx = clamp(cx - 1, 0, c.width - 1), sy = clamp(cy - 1, 0, c.height - 1);
+    const w = Math.min(3, c.width - sx), h = Math.min(3, c.height - sy);
+    const d = g.getImageData(sx, sy, w, h).data;
+    let r = 0, gg = 0, b = 0, n = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 12) continue;
+      r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++;
+    }
+    if (!n) return null;
+    return rgbToHex(r / n, gg / n, b / n);
+  } catch (e) { return null; }
+}
+
+/* ═════════ 콜라주 칸 ═════════ */
+const LAYOUTS = [
+  ['one', '1장', 1, 1],
+  ['h2', '2장 가로', 2, 1],
+  ['v2', '2장 세로', 1, 2],
+  ['g4', '4장 정사각', 2, 2],
+  ['v6', '6장 세로길게', 2, 3],
+  ['g9', '9장 3×3', 3, 3]
+];
+
+function layIcon(cols, rows) {
+  const W = 26, H = 20, g = 1.8;
+  const cw = (W - g * (cols - 1)) / cols, ch = (H - g * (rows - 1)) / rows;
+  let r = '';
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+    r += `<rect x="${(x * (cw + g)).toFixed(2)}" y="${(y * (ch + g)).toFixed(2)}" width="${cw.toFixed(2)}" height="${ch.toFixed(2)}"/>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" width="26" height="20" aria-hidden="true">${r}</svg>`;
+}
+
+function layoutRow() {
+  const n = Ed.cellCount();
+  const filled = Ed.cells.filter(Boolean).length;
+  return `<div class="p-title">사진 칸 · 콜라주</div>
+  <div class="lay-row">
+    ${LAYOUTS.map(([k, label, c, r]) => `<button class="lay ${Ed.layout === k ? 'on' : ''}" data-lay="${k}">
+      <span class="lay-ic">${layIcon(c, r)}</span><span class="lay-lb">${label}</span></button>`).join('')}
+  </div>
+  ${n > 1 ? `<div class="row" style="margin-top:2px">
+    <button class="chip sm" data-act="pickmulti">＋ 여러 장 한 번에 (${filled}/${n}칸)</button>
+    <button class="chip sm" data-act="pickcell">이 칸만 바꾸기</button>
+  </div>
+  <p class="p-note" style="margin-top:0">빈 칸을 톡 누르면 그 칸에 사진이 들어가요. 찬 칸은 끌어서 위치를, 두 손가락으로 확대를 조정해요.</p>` : ''}`;
+}
+
+function openCellPicker(i, many) {
+  ST.cellTarget = i;
+  Ed.activeCell = i;
+  const inp = many ? $('#fileCollageMany') : $('#fileCollage');
+  if (inp) inp.click();
+}
+
+async function fillCells(files, start) {
+  const n = Ed.cellCount();
+  const order = [];
+  for (let i = 0; i < n; i++) {
+    const idx = (start + i) % n;
+    if (!Ed.cells[idx]) order.push(idx);
+  }
+  let k = 0, last = start;
+  for (const f of files) {
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.src = url;
+    try { await img.decode(); } catch (e) { continue; }
+    const idx = (k < order.length) ? order[k] : ((start + k) % n);
+    k++;
+    Ed.setCellPhoto(idx, img);
+    last = idx;
+  }
+  if (!k) { toast('사진을 열 수 없어요', 2600); return; }
+  Ed.activeCell = last;
+  Ed.snapshot();
+  refreshView(); renderPanel();
+  toast(k > 1 ? (k + '장을 콜라주에 넣었어요') : '사진을 넣었어요');
+}
+
 /* ---------- stage sizing ---------- */
 function fitStage() {
   const pad = 24;
@@ -251,7 +492,7 @@ function refreshView() {
 Ed.onRender = () => { updateEmpty(); updateSelbar(); };
 
 function updateEmpty() {
-  $('#emptyState').hidden = !!(Ed.photo || Ed.els.length);
+  $('#emptyState').hidden = !!(Ed.cells.some(Boolean) || Ed.els.length);
 }
 
 /* ---------- fonts ---------- */
@@ -278,6 +519,31 @@ function updateSelbar() {
   $('#selEditBtn').hidden = !el || !(el.type === 'text' || el.type === 'bubble' ||
     el.type === 'thought' || el.type === 'stack' || el.type === 'box' ||
     (el.type === 'deco' && ['datetag', 'badge', 'stamp', 'music', 'polaroid'].includes(el.kind)));
+  renderQuickColor();
+}
+
+/* 선택한 스티커·별 옆에 바로 색 팔레트 + 스포이드 */
+let _qcKey = '';
+function renderQuickColor() {
+  const box = $('#quickColor');
+  if (!box) return;
+  const el = selected();
+  const on = !Eye.active && !!el && (el.type === 'sticker' || (el.type === 'deco' && el.kind === 'star3d'));
+  if (!on) {
+    if (!box.hidden) { box.hidden = true; box.innerHTML = ''; _qcKey = ''; }
+    return;
+  }
+  const cur = (el.type === 'deco' ? el.fill : el.tint) || '';
+  const key = el.id + '|' + cur + '|' + (Eye.active ? Eye.kind : '');
+  if (_qcKey === key && !box.hidden) return;
+  _qcKey = key;
+  box.hidden = false;
+  const hex = normHex(cur);
+  box.innerHTML = `<span class="qc-lb">${tintLabel(el)}</span>
+    ${PASTELS.map(p => `<button class="qc-sw${sameColor(cur, p.c) ? ' on' : ''}" data-pc="${p.c}" data-pk="tint" style="background:${p.c}" title="${p.n}"></button>`).join('')}
+    <label class="qc-btn">🎨<input type="color" data-pick="tint" value="${/^#[0-9A-F]{6}$/.test(hex) ? hex : '#D9F99D'}"></label>
+    <button class="qc-btn${Eye.active && Eye.kind === 'tint' ? ' on' : ''}" data-eye="tint" title="스포이드">💧</button>`;
+  bindColorControls(box);
 }
 function selectEl(id) {
   Ed.selId = id;
@@ -299,12 +565,30 @@ cv.addEventListener('pointerdown', ev => {
   ev.preventDefault();
   try { cv.setPointerCapture(ev.pointerId); } catch (e) { }
   const p = canvasPos(ev);
+
+  // 스포이드 중 — 이 탭은 색만 뽑고 끝
+  if (Eye.active) {
+    const kind = Eye.kind;
+    const hex = pickColorAt(p.x, p.y);
+    endEyedrop();
+    if (hex) { applyColor(kind, hex); toast('색을 뽑았어요 ' + hex); }
+    else toast('그 자리 색을 못 읽었어요', 2600);
+    Ed.render(); renderPanel();
+    return;
+  }
+
   pointers.set(ev.pointerId, p);
 
   if (pointers.size === 2) {
     const [a, b] = Array.from(pointers.values());
     const sel = selected();
-    const target = sel || (Ed.photoMode ? 'photo' : null);
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    // 콜라주 — 두 손가락이 놓인 칸을 그대로 집기
+    if (!sel && Ed.layout !== 'one') {
+      const Rc = Ed.cellAt(mx, my);
+      if (Rc && Ed.cells[Rc.i]) { Ed.activeCell = Rc.i; Ed.render(); }
+    }
+    const target = sel || ((Ed.photoMode || Ed.layout !== 'one') ? 'photo' : null);
     if (target) {
       const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
       pinch = {
@@ -360,6 +644,24 @@ cv.addEventListener('pointerdown', ev => {
     return;
   }
 
+  // 콜라주 — 탭한 칸이 대상
+  if (Ed.layout !== 'one') {
+    const R = Ed.cellAt(p.x, p.y);
+    if (R) {
+      Ed.activeCell = R.i;
+      const cell = Ed.cells[R.i];
+      if (Ed.selId) selectEl(null);
+      if (!cell || isDouble) {
+        Ed.render(); renderPanel();
+        openCellPicker(R.i, false);
+        return;
+      }
+      drag = { mode: 'cell', i: R.i, R, ox: cell.ox || 0, oy: cell.oy || 0, sx: p.x, sy: p.y, moved: false };
+      Ed.render(); renderPanel();
+      return;
+    }
+  }
+
   if (Ed.photoMode && Ed.photo) {
     drag = { mode: 'photo', ox: Ed.photo.ox, oy: Ed.photo.oy, sx: p.x, sy: p.y };
     return;
@@ -384,6 +686,10 @@ cv.addEventListener('pointermove', ev => {
       Ed.photo.scale = clamp(pinch.ps0 * ratio, 0.4, 6);
       Ed.photo.ox = pinch.pox + ((a.x + b.x) / 2 - pinch.cx);
       Ed.photo.oy = pinch.poy + ((a.y + b.y) / 2 - pinch.cy);
+      if (Ed.layout !== 'one') {
+        const R = Ed.cellRects(Ed.W, Ed.H)[Ed.activeCell];
+        if (R) Ed.clampCellOffset(Ed.photo, R);
+      }
     } else if (pinch.target) {
       const el = pinch.target;
       if (isTextLike(el)) {
@@ -411,6 +717,14 @@ cv.addEventListener('pointermove', ev => {
     else el.scale = clamp(drag.scale0 * ratio, 0.15, 8);
     el.rot = drag.rot0 + (Math.atan2(p.y - el.y, p.x - el.x) - drag.ang0);
     drag.moved = true;
+  } else if (drag.mode === 'cell') {
+    const cell = Ed.cells[drag.i];
+    if (cell) {
+      cell.ox = drag.ox + (p.x - drag.sx);
+      cell.oy = drag.oy + (p.y - drag.sy);
+      Ed.clampCellOffset(cell, drag.R);
+      drag.moved = true;
+    }
   } else if (drag.mode === 'photo' && Ed.photo) {
     Ed.photo.ox = drag.ox + (p.x - drag.sx);
     Ed.photo.oy = drag.oy + (p.y - drag.sy);
@@ -499,6 +813,20 @@ $('#filePhoto').addEventListener('change', async e => {
   await loadPhotoFile(file);
 });
 
+/* 콜라주 칸 사진 — 한 장 / 여러 장 */
+async function onCellFiles(e) {
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  if (!files.length) return;
+  const start = ST.cellTarget == null ? Ed.activeCell : ST.cellTarget;
+  ST.cellTarget = null;
+  if (Ed.layout === 'one') { await loadPhotoFile(files[0]); return; }
+  await fillCells(files, start);
+}
+$('#fileCollage').addEventListener('change', onCellFiles);
+$('#fileCollageMany').addEventListener('change', onCellFiles);
+$('#eyeCancel').addEventListener('click', () => { endEyedrop(); Ed.render(); renderPanel(); });
+
 /* 투명 PNG 붙여넣기 */
 async function pasteImage() {
   try {
@@ -560,6 +888,7 @@ function renderPanel() {
   let html = '';
   if (ST.tab === 'photo') html = panelPhoto();
   else if (ST.tab === 'text') html = panelText();
+  else if (ST.tab === 'color') html = panelColor();
   else if (ST.tab === 'box') html = panelBox();
   else if (ST.tab === 'bubble') html = panelBubble();
   else if (ST.tab === 'sticker') html = panelSticker();
@@ -575,6 +904,7 @@ function renderPanel() {
 /* ----- 사진 ----- */
 function panelPhoto() {
   const p = Ed.photo;
+  const anyP = Ed.cells.some(Boolean);
   const adj = (p && p.adj) || { brightness: 100, contrast: 100, saturate: 100, warmth: 0 };
   const ratios = [['orig', '원본'], ['1:1', '1:1'], ['4:5', '4:5'], ['9:16', '9:16']];
   const fills = [['#FFFFFF', '화이트'], [PAL.cream, '크림'], [PAL.ink, '블랙'], [PAL.butter, '버터']];
@@ -583,8 +913,8 @@ function panelPhoto() {
       <span class="val">${Math.round(val)}</span></div>`;
   return `
   <div class="p-head"><span class="p-title">사진</span>
-    <button class="chip sm" data-act="pick">${p ? '사진 바꾸기' : '사진 불러오기'}</button></div>
-  ${p ? '' : `<div class="photo-empty"><p>사진첩에서 한 장 골라주세요.<br>사진 없이 스티커만 얹어도 돼요.</p>
+    <button class="chip sm" data-act="pick">${anyP ? '사진 바꾸기' : '사진 불러오기'}</button></div>
+  ${anyP ? '' : `<div class="photo-empty"><p>사진첩에서 한 장 골라주세요.<br>사진 없이 스티커만 얹어도 돼요.</p>
       <button class="btn lime wide" data-act="pick">사진 불러오기</button></div>`}
 
   <div class="p-title">원터치 보정</div>
@@ -597,6 +927,7 @@ function panelPhoto() {
     <button class="tpl-btn" data-act="tpl-cute"><b>오늘의 귀여움</b><span>웜톤 + 흰 프레임 + 제목·소제목</span></button>
     <button class="tpl-btn" data-act="tpl-record"><b>오늘의 기록</b><span>날짜 + 제목 + 직각 소제목</span></button>
   </div>
+  ${layoutRow()}
   <div class="row" style="margin-top:6px">
     <button class="chip ${p && p.scene === 'wood' ? 'on' : ''}" data-act="cut-wood">다크 우드 배경</button>
     <button class="chip" data-act="cut-only">누끼만 따기</button>
@@ -639,16 +970,37 @@ function panelPhoto() {
   </div>
   <div class="row">
     <button class="chip ${Ed.photoMode ? 'on' : ''}" data-act="photomode">${Ed.photoMode ? '✓ 사진 조정 중' : '사진 위치·확대 조정'}</button>
-    <button class="chip ${p && p.frame ? 'on' : ''}" data-act="frame-toggle">${p && p.frame ? '✓ 틀 프레임' : '틀 프레임'}</button>
-    ${p ? '<button class="chip" data-act="delphoto">사진 빼기</button>' : ''}
+    <button class="chip ${Ed.frameOn ? 'on' : ''}" data-act="frame-toggle">${Ed.frameOn ? '✓ 틀 프레임' : '틀 프레임'}</button>
+    ${p ? `<button class="chip" data-act="delphoto">${Ed.layout !== 'one' ? '이 칸 사진 빼기' : '사진 빼기'}</button>` : ''}
     ${Ed.els.length ? '<button class="chip" data-act="clearall">모두 지우기</button>' : ''}
   </div>
   <div class="p-title">바탕색</div>
-  <div class="row">
-    ${[['#FFFFFF', '화이트'], [PAL.cream, '크림'], [PAL.butter, '버터'], [PAL.ink, '블랙'], [PAL.lime, '라임'], [PAL.pink, '핑크']]
-      .map(([c, n]) => `<button class="chip ${Ed.bg === c ? 'on' : ''}" data-bg="${c}">${n}</button>`).join('')}
-  </div>
+  ${colorCtl('bg', { palette: [PAL.white, PAL.cream, PAL.butter, PAL.ink, PAL.lime, PAL.pink, '#D9F99D', '#FEF3A1', '#FFD1DC', '#BAE6FD'] })}
   <p class="p-note">${Ed.photoMode ? '손가락으로 사진을 밀고, 두 손가락으로 확대·축소해요.' : '요소를 누르면 선택되고, 오른쪽 아래 네모를 끌면 크기·회전이 바뀌어요. 두 번 톡 누르면 글씨를 바로 고칠 수 있어요.'}</p>`;
+}
+
+/* ----- 색 (선택한 요소의 색을 한자리에서) ----- */
+function panelColor() {
+  const el = selected();
+  const rows = [];
+  const add = k => { if (!rows.includes(k)) rows.push(k); };
+  if (el) {
+    if (hasText(el)) add('tcolor');
+    if (el.type === 'text' || el.type === 'stack') add('tbg');
+    if (el.type === 'box') { add('box'); add('tcolor'); }
+    if (el.type === 'bubble') add('bubble');
+    if (el.type === 'thought') add('thought');
+    if (el.type === 'sticker') add('tint');
+    if (el.type === 'deco' && el.kind === 'star3d') add('tint');
+  } else {
+    add('tcolor'); add('box'); add('bubble');
+  }
+  add('bg');
+  return `
+  <div class="p-head"><span class="p-title">색 ${el ? '· ' + typeLabel(el) + ' 색 바꾸기' : ''}</span>
+    <span class="p-note" style="margin:0">파스텔 · 스포이드</span></div>
+  ${rows.map(k => colorCtl(k)).join('')}
+  <p class="p-note">💧 스포이드를 누른 뒤 사진을 톡 누르면 그 자리 색을 그대로 가져와요. 앞줄 칩은 연두·연노랑·연핑크·연하늘 같은 자주 쓰는 색이예요.</p>`;
 }
 
 /* ----- 글씨 (글씨·말풍선·생각풍선·2단박스·박스 모두 여기서 수정) ----- */
@@ -675,14 +1027,12 @@ function panelText() {
     <input type="range" id="rngSize" min="20" max="340" step="2" value="${clamp(size, 20, 340)}">
     <span class="val" id="valSize">${size}</span></div>
   <div class="p-title">글자색</div>
-  <div class="sw-row">
-    ${SWATCHES.map(c => `<button class="sw ${(col === c) ? 'on' : ''}" data-tcolor="${c}" style="background:${c}"></button>`).join('')}
-  </div>
+  ${colorCtl('tcolor')}
   ${el && el.type === 'text' ? `<div class="p-title">배경 박스 <span class="p-note" style="margin:0">— 완전 직각</span></div>
-  <div class="sw-row">
-    <button class="sw ${!el.bg ? 'on' : ''}" data-tbg="none" style="background:#fff;position:relative;overflow:hidden">✕</button>
-    ${BOX_COLORS.map(o => `<button class="sw ${el.bg && el.bg.c === o.c ? 'on' : ''}" data-tbg="${o.c}" style="background:${o.c}" title="${o.n}"></button>`).join('')}
-  </div>` : ''}` : '';
+  <div class="row" style="margin:-2px 0 6px">
+    <button class="chip sm" data-tbg="none">✕ 박스 없음</button>
+  </div>
+  ${colorCtl('tbg')}` : ''}` : '';
   return `
   <div class="p-head"><span class="p-title">글씨 ${edit ? '· ' + typeLabel(el) + ' 수정 중' : ''}</span></div>
   <textarea class="txt-area" id="taText" placeholder="여기에 글씨를 써요 (줄바꿈 가능)" rows="2">${escapeHtml(txt)}</textarea>
@@ -718,9 +1068,7 @@ function panelBox() {
   <div class="p-head"><span class="p-title">박스 ${isBox ? '· 선택된 박스 수정 중' : isStack ? '· 2단 박스 수정 중' : ''}</span></div>
   <div class="row">${BOX_STYLES.map(s => `<button class="chip ${ST.boxStyle === s.id ? 'on' : ''}" data-bstyle="${s.id}">${s.label}</button>`).join('')}</div>
   <div class="p-title">색 (전부 직각)</div>
-  <div class="sw-row">
-    ${BOX_COLORS.map(o => `<button class="sw ${((isBox ? el.fill : ST.boxColor) === o.c) ? 'on' : ''}" data-bcolor="${o.c}" style="background:${o.c}" title="${o.n}"></button>`).join('')}
-  </div>
+  ${colorCtl('box')}
   <div class="row" style="margin-top:10px">
     <button class="chip" data-act="addbox" style="background:${PAL.ink};color:#fff">＋ 박스 넣기</button>
     <button class="chip" data-act="addstack">＋ 2단 겹친 박스</button>
@@ -728,7 +1076,7 @@ function panelBox() {
     ${isStack ? '<button class="chip" data-act="edit">위/아래 글씨 고치기</button><button class="chip" data-act="del">삭제</button>' : ''}
   </div>
   ${isStack ? `<p class="p-note">흰 박스·검정 박스 글이 각각 따로 고쳐져요. ‘글씨’ 탭에서도 두 칸 모두 수정할 수 있어요.</p>` : ''}
-  <p class="p-note">색을 누르면 그 색 박스가 바로 생겨요. 선택된 박스가 있으면 그 박스 색이 바뀌어요.</p>`;
+  <p class="p-note">${isBox ? '색을 누르면 선택된 박스 색이 바뀌어요.' : '색을 누르면 그 색 박스가 바로 생겨요.'}</p>`;
 }
 
 /* ----- 말풍선 ----- */
@@ -788,9 +1136,7 @@ function panelBubble() {
   <div class="p-head"><span class="p-title">말풍선 ${isB ? '· 선택된 말풍선 수정 중' : isT ? '· 생각풍선 수정 중' : ''}</span></div>
   <div class="row">${BUBBLES.map(b => `<button class="chip ${(curKind === b.id) ? 'on' : ''}" data-bubble="${b.id}">${b.label}</button>`).join('')}</div>
   ${isT ? '' : `<div class="p-title">색</div>
-  <div class="sw-row">
-    ${colors.map(c => `<button class="sw ${(curFill === c) ? 'on' : ''}" data-bfill="${c}" style="background:${c}"></button>`).join('')}
-  </div>`}
+  ${colorCtl('bubble', { palette: colors })}`}
   <div class="row" style="margin-top:10px">
     <button class="chip" data-act="addbubble" style="background:${PAL.ink};color:#fff">＋ 말풍선 넣기</button>
     ${(isB || isT) ? '<button class="chip" data-act="edit">글씨 수정</button><button class="chip" data-act="del">삭제</button>' : ''}
@@ -805,9 +1151,14 @@ const SRC_TABS = [
   ['phrase', '다꾸 문구'], ['jelly', '3D 젤리'], ['bam', '오도독밤'], ['mine', '내 사진']
 ];
 function panelSticker() {
+  const el = selected();
+  const onSticker = el && el.type === 'sticker';
   return `
   <div class="p-head"><span class="p-title">스티커</span>
     <span class="p-note" style="margin:0">${ST.stickerSrc === 'mine' ? '' : '눌러서 얹기'}</span></div>
+  ${onSticker ? `<div class="p-title">${tintLabel(el)} <span class="p-note" style="margin:0">— 별·하트 색도 바뀌여요</span></div>
+  ${colorCtl('tint')}
+  <div class="row" style="margin:-2px 0 8px"><button class="chip sm" data-act="tint-clear">원래 색으로</button></div>` : ''}
   <div class="src-row">${SRC_TABS.map(([k, l]) => `<button class="chip sm ${ST.stickerSrc === k ? 'on' : ''}" data-src="${k}">${l}</button>`).join('')}</div>
   <div id="stickerBody">${stickerBody()}</div>`;
 }
@@ -833,10 +1184,13 @@ function stickerBody() {
 }
 
 /* ----- 데코 ----- */
-const DECO_ICON = { music: '♪', datetag: '▤', badge: 'PLUS', stamp: '◉', sparkle: '✦', tape: '▰', arrow: '↝', polaroid: '▢' };
+const DECO_ICON = { music: '♪', star3d: '★', datetag: '▤', badge: 'PLUS', stamp: '◉', sparkle: '✦', tape: '▰', arrow: '↝', polaroid: '▢' };
 function panelDeco() {
+  const el = selected();
+  const onStar = el && el.type === 'deco' && el.kind === 'star3d';
   return `
   <div class="p-head"><span class="p-title">데코 · 챡 스타일</span></div>
+  ${onStar ? `<div class="p-title">별 색</div>${colorCtl('tint')}` : ''}
   <div class="deco-grid">
     ${DECOS.map(d => `<button class="deco-card" data-deco="${d.id}">
       <b>${DECO_ICON[d.id] || '✦'}</b><span>${d.label}</span></button>`).join('')}
@@ -889,14 +1243,17 @@ function bindPanel() {
     else if (a === 'cut-black') doCutout('black');
     else if (a === 'cut-wood') doCutout('wood');
     else if (a === 'cut-only') doCutout(Ed.photo && Ed.photo.scene ? Ed.photo.scene : 'black');
-    else if (a === 'scene-off') { if (Ed.photo) { Ed.photo.scene = null; Ed.photo.frame = Ed.frameDefault || null; Ed.render(); renderPanel(); } }
+    else if (a === 'scene-off') { if (Ed.photo) { Ed.photo.scene = null; Ed.setFrameOn(!!Ed.frameDefault); Ed.render(); renderPanel(); } }
     else if (a === 'warm') { applyWarm(ST.warm || 'cozy', ST.warmStrength); renderPanel(); }
     else if (a === 'warm-off') { warmOff(); renderPanel(); }
     else if (a === 'paste') pasteImage();
     else if (a === 'frame-toggle') {
       if (Ed.photo) {
-        if (Ed.photo.frame) { Ed.frameDefault = Ed.photo.frame; Ed.photo.frame = null; }
-        else Ed.photo.frame = Ed.frameDefault || { x: 0.06, y: 0.06, w: 0.88, h: 0.72, r: 0, bw: 6, bc: '#FFFFFF', bg: '#FFFFFF' };
+        if (Ed.frameOn) { if (Ed.photo.frame) Ed.frameDefault = Ed.photo.frame; Ed.setFrameOn(false); }
+        else {
+          if (!Ed.frameDefault) Ed.frameDefault = { x: 0.06, y: 0.06, w: 0.88, h: 0.72, r: 0, bw: 6, bc: '#FFFFFF', bg: '#FFFFFF' };
+          Ed.setFrameOn(true);
+        }
         Ed.render(); renderPanel();
       } else toast('사진을 먼저 불러와 주세요');
     }
@@ -914,7 +1271,25 @@ function bindPanel() {
     else if (a === 'del') deleteSel();
     else if (a === 'edit') openEditorFor(selected());
     else if (a === 'upsticker') $('#fileSticker').click();
+    else if (a === 'pickmulti') { ST.cellTarget = Math.max(0, Ed.cells.findIndex(c => !c)); Ed.activeCell = ST.cellTarget === -1 ? 0 : ST.cellTarget; $('#fileCollageMany').click(); }
+    else if (a === 'pickcell') openCellPicker(Ed.activeCell, false);
+    else if (a === 'tint-clear') {
+      const el = selected();
+      if (el && el.type === 'sticker') { el.tint = null; Ed.render(); renderPanel(); }
+    }
   }));
+
+  p.querySelectorAll('[data-lay]').forEach(b => b.addEventListener('click', () => {
+    const prev = Ed.layout;
+    Ed.setLayout(b.dataset.lay);
+    // 6장은 세로로 길게 — 기본 9:16 캔버스로 맞춰준다
+    if (b.dataset.lay === 'v6' && prev !== 'v6' && Ed.ratio !== '9:16') Ed.setRatio('9:16');
+    refreshView(); renderPanel();
+    const n = Ed.cellCount();
+    toast(n > 1 ? `${n}칸 콜라주 — 빈 칸을 눌러 사진을 넣어보세요` : '1장으로 바꿨어요');
+  }));
+
+  bindColorControls(p);
 
   p.querySelectorAll('[data-adj]').forEach(s => s.addEventListener('input', () => {
     const k = s.dataset.adj, v = +s.value;
@@ -1150,7 +1525,7 @@ function bindPanel() {
 
   p.querySelectorAll('[data-deco]').forEach(b => b.addEventListener('click', () => {
     const el = Ed.addDeco(b.dataset.deco);
-    Ed.render(); updateEmpty(); updateSelbar();
+    Ed.render(); updateEmpty(); updateSelbar(); renderPanel();
     toast('데코를 얹었어요');
   }));
 
@@ -1328,7 +1703,9 @@ function exportFactor() {
 async function makeBlob() {
   await ensureAllUsedFonts();
   // 저장 직전에는 축소 미리보기가 아니라 원본 크기로 다시 처리
-  if (Ed.photo && (Ed.photo.adj || Ed.photo.cut)) { clearTimeout(adjFullTimer); Ed.processPhoto(false); }
+  // 저장 직전에는 축소 미리보기가 아니라 원본 크기로 다시 처리
+  clearTimeout(adjFullTimer);
+  Ed.processAll(false);
   const factor = exportFactor();
   const c = Ed.exportCanvas(factor);
   return await new Promise(res => c.toBlob(b => res(b), 'image/png'));
@@ -1425,6 +1802,7 @@ window.addEventListener('orientationchange', () => setTimeout(fitStage, 250));
       }
     });
   }
+  Ed.ensureCells();
   Ed.render();
   fitStage();
   updateEmpty();

@@ -49,13 +49,23 @@
       <button data-act="del" title="삭제" class="danger">✕</button>
     </div>
 
+    <div class="quickc" id="quickColor" hidden></div>
+
+    <div class="eyebar" id="eyeBar" hidden>
+      <span>💧 사진을 터치해 색을 뽑아요</span>
+      <button class="chip sm" id="eyeCancel">취소</button>
+    </div>
+
     <input type="file" id="filePhoto" accept="image/*" hidden>
     <input type="file" id="fileSticker" accept="image/*" hidden>
+    <input type="file" id="fileCollage" accept="image/*" hidden>
+    <input type="file" id="fileCollageMany" accept="image/*" multiple hidden>
   </section>
 
   <nav class="tabs" id="tabs">
     <button data-tab="photo" class="active"><em>◫</em><span>사진</span></button>
     <button data-tab="text"><em>Aa</em><span>글씨</span></button>
+    <button data-tab="color"><em>◑</em><span>색</span></button>
     <button data-tab="box"><em>▣</em><span>박스</span></button>
     <button data-tab="bubble"><em>❝</em><span>말풍선</span></button>
     <button data-tab="sticker"><em>✿</em><span>스티커</span></button>
