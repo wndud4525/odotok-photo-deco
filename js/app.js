@@ -171,7 +171,7 @@ function applyTemplate(kind) {
     addTplText(todayLine(), { font: 'Pretendard', weight: 600, size: 24, color: '#8B7A5F', x: W / 2, y: H * 0.932, tpl: 'cute' });
     const stars = (ST.manifests.jelly || []).filter(s => /star|별/i.test(s.name || s.file));
     const pick = stars.length ? stars : (ST.manifests.jelly || []);
-    [[0.205, 0.802, 0.105], [0.795, 0.815, 0.085]].forEach(([fx, fy, sz], i) => {
+    [[0.125, 0.812, 0.085], [0.875, 0.775, 0.07]].forEach(([fx, fy, sz], i) => {
       const s = pick[i % Math.max(1, pick.length)];
       if (!s) return;
       const src = `stickers/jelly/${s.file}`;
