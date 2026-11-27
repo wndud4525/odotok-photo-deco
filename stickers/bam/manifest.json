@@ -1,0 +1,47 @@
+[
+{
+"file": "bam.png",
+"name": "오도독밤",
+"tags": [
+"bam"
+],
+"w": 480,
+"h": 455
+},
+{
+"file": "st_star.png",
+"name": "별",
+"tags": [
+"bam"
+],
+"w": 360,
+"h": 360
+},
+{
+"file": "st_heart.png",
+"name": "하트",
+"tags": [
+"bam"
+],
+"w": 360,
+"h": 360
+},
+{
+"file": "st_sparkle.png",
+"name": "반짝이",
+"tags": [
+"bam"
+],
+"w": 360,
+"h": 360
+},
+{
+"file": "st_bubble.png",
+"name": "말풍선",
+"tags": [
+"bam"
+],
+"w": 360,
+"h": 360
+}
+]

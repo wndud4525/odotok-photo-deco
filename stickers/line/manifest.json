@@ -1,0 +1,926 @@
+[
+{
+"file": "line_icon_01.png",
+"name": "치이카와 얼굴",
+"tags": [
+"face",
+"line"
+],
+"w": 390,
+"h": 420
+},
+{
+"file": "line_icon_02.png",
+"name": "하치와레 얼굴",
+"tags": [
+"face",
+"line"
+],
+"w": 423,
+"h": 378
+},
+{
+"file": "line_icon_03.png",
+"name": "하치와레 하트",
+"tags": [
+"heart",
+"line"
+],
+"w": 422,
+"h": 414
+},
+{
+"file": "line_icon_04.png",
+"name": "우사기 얼굴",
+"tags": [
+"face",
+"line"
+],
+"w": 423,
+"h": 392
+},
+{
+"file": "line_icon_05.png",
+"name": "우사기 반짝",
+"tags": [
+"face",
+"line"
+],
+"w": 390,
+"h": 431
+},
+{
+"file": "line_icon_06.png",
+"name": "모몽가 얼굴",
+"tags": [
+"face",
+"line"
+],
+"w": 366,
+"h": 420
+},
+{
+"file": "line_icon_07.png",
+"name": "하트눈 얼굴",
+"tags": [
+"face",
+"line"
+],
+"w": 423,
+"h": 315
+},
+{
+"file": "line_icon_08.png",
+"name": "두 캐릭터 나란히",
+"tags": [
+"face",
+"line"
+],
+"w": 560,
+"h": 224
+},
+{
+"file": "line_icon_09.png",
+"name": "춤추는 두 캐릭터",
+"tags": [
+"face",
+"line"
+],
+"w": 560,
+"h": 223
+},
+{
+"file": "line_icon_10.png",
+"name": "카메라",
+"tags": [
+"thing",
+"line"
+],
+"w": 378,
+"h": 330
+},
+{
+"file": "line_icon_11.png",
+"name": "커피잔",
+"tags": [
+"thing",
+"line"
+],
+"w": 389,
+"h": 552
+},
+{
+"file": "line_icon_12.png",
+"name": "빵",
+"tags": [
+"thing",
+"line"
+],
+"w": 486,
+"h": 201
+},
+{
+"file": "line_icon_13.png",
+"name": "펼친 책",
+"tags": [
+"thing",
+"line"
+],
+"w": 354,
+"h": 351
+},
+{
+"file": "line_icon_14.png",
+"name": "여행 캐리어",
+"tags": [
+"thing",
+"line"
+],
+"w": 446,
+"h": 560
+},
+{
+"file": "line_icon_15.png",
+"name": "엄지척 얼굴",
+"tags": [
+"face",
+"line"
+],
+"w": 312,
+"h": 243
+},
+{
+"file": "line_icon_16.png",
+"name": "자전거",
+"tags": [
+"thing",
+"line"
+],
+"w": 252,
+"h": 252
+},
+{
+"file": "line_icon_17.png",
+"name": "아무 생각 없는 얼굴",
+"tags": [
+"face",
+"line"
+],
+"w": 560,
+"h": 231
+},
+{
+"file": "line_icon_18.png",
+"name": "컵 마시는 곰",
+"tags": [
+"face",
+"line"
+],
+"w": 507,
+"h": 560
+},
+{
+"file": "line_icon_19.png",
+"name": "고양이 얼굴",
+"tags": [
+"face",
+"line"
+],
+"w": 544,
+"h": 400
+},
+{
+"file": "line_icon_20.png",
+"name": "손잡은 세 친구",
+"tags": [
+"face",
+"line"
+],
+"w": 560,
+"h": 339
+},
+{
+"file": "line_icon_21.png",
+"name": "토끼 세 마리",
+"tags": [
+"face",
+"line"
+],
+"w": 475,
+"h": 256
+},
+{
+"file": "line_icon_22.png",
+"name": "고양이와 별",
+"tags": [
+"heart",
+"line"
+],
+"w": 560,
+"h": 517
+},
+{
+"file": "line_icon_23.png",
+"name": "고양이와 하트",
+"tags": [
+"heart",
+"line"
+],
+"w": 560,
+"h": 251
+},
+{
+"file": "line_icon_24.png",
+"name": "별 궤적",
+"tags": [
+"heart",
+"line"
+],
+"w": 235,
+"h": 560
+},
+{
+"file": "line_icon_25.png",
+"name": "하트 낙서",
+"tags": [
+"heart",
+"line"
+],
+"w": 560,
+"h": 482
+},
+{
+"file": "line_icon_26.png",
+"name": "체리",
+"tags": [
+"thing",
+"line"
+],
+"w": 438,
+"h": 560
+},
+{
+"file": "line_icon_27.png",
+"name": "동글 토끼",
+"tags": [
+"face",
+"line"
+],
+"w": 502,
+"h": 475
+},
+{
+"file": "line_icon_28.png",
+"name": "꽃과 하트",
+"tags": [
+"heart",
+"line"
+],
+"w": 560,
+"h": 544
+},
+{
+"file": "line_icon_29.png",
+"name": "큰눈 고양이",
+"tags": [
+"face",
+"line"
+],
+"w": 560,
+"h": 397
+},
+{
+"file": "line_icon_30.png",
+"name": "검은귀 강아지",
+"tags": [
+"face",
+"line"
+],
+"w": 560,
+"h": 397
+},
+{
+"file": "line_icon_31.png",
+"name": "고양이와 하트",
+"tags": [
+"face",
+"line"
+],
+"w": 560,
+"h": 455
+},
+{
+"file": "line_icon_32.png",
+"name": "고양이와 꽃",
+"tags": [
+"face",
+"line"
+],
+"w": 560,
+"h": 418
+},
+{
+"file": "line_icon_33.png",
+"name": "미피 토끼",
+"tags": [
+"face",
+"line"
+],
+"w": 399,
+"h": 560
+},
+{
+"file": "line_icon_34.png",
+"name": "하트 목걸이 고양이",
+"tags": [
+"face",
+"line"
+],
+"w": 374,
+"h": 560
+},
+{
+"file": "line_icon_35.png",
+"name": "산책 루트 핀",
+"tags": [
+"thing",
+"line"
+],
+"w": 558,
+"h": 560
+},
+{
+"file": "line_icon_36.png",
+"name": "네잎클로버",
+"tags": [
+"heart",
+"line"
+],
+"w": 490,
+"h": 480
+},
+{
+"file": "line_phrase_01.png",
+"name": "우와좀멋진데",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 169
+},
+{
+"file": "line_phrase_02.png",
+"name": "카오모지",
+"tags": [
+"phrase",
+"line"
+],
+"w": 560,
+"h": 146
+},
+{
+"file": "line_phrase_03.png",
+"name": "오별론데",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 278
+},
+{
+"file": "line_phrase_04.png",
+"name": "아야악미치겠다",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 467
+},
+{
+"file": "line_phrase_05.png",
+"name": "와정신병미쳤네",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 362
+},
+{
+"file": "line_phrase_06.png",
+"name": "귀여워",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 283
+},
+{
+"file": "line_phrase_07.png",
+"name": "귀엽다",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 289,
+"h": 560
+},
+{
+"file": "line_phrase_08.png",
+"name": "누낌좋은",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 326
+},
+{
+"file": "line_phrase_09.png",
+"name": "쿨쿨따",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 315
+},
+{
+"file": "line_phrase_10.png",
+"name": "저는귀여우니까",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 227,
+"h": 560
+},
+{
+"file": "line_phrase_11.png",
+"name": "왜지랄이지",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 474,
+"h": 474
+},
+{
+"file": "line_phrase_12.png",
+"name": "동그라미상까지게살자",
+"tags": [
+"phrase",
+"line"
+],
+"w": 560,
+"h": 387
+},
+{
+"file": "line_phrase_13.png",
+"name": "모하세요",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 504,
+"h": 420
+},
+{
+"file": "line_phrase_14.png",
+"name": "집에가고싶다",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 507,
+"h": 204
+},
+{
+"file": "line_phrase_15.png",
+"name": "아름다운시간만살자",
+"tags": [
+"phrase",
+"line"
+],
+"w": 560,
+"h": 256
+},
+{
+"file": "line_phrase_16.png",
+"name": "쿨하게인성포기",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 138
+},
+{
+"file": "line_phrase_17.png",
+"name": "피할수없다면즐입니다",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 186
+},
+{
+"file": "line_phrase_18.png",
+"name": "좋대에게살자",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 96
+},
+{
+"file": "line_phrase_19.png",
+"name": "이집아들내꺼",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 76
+},
+{
+"file": "line_phrase_20.png",
+"name": "인생에사랑은필수",
+"tags": [
+"phrase",
+"line"
+],
+"w": 560,
+"h": 116
+},
+{
+"file": "line_phrase_21.png",
+"name": "행복한기억대신",
+"tags": [
+"phrase",
+"line"
+],
+"w": 560,
+"h": 152
+},
+{
+"file": "line_phrase_22.png",
+"name": "재잘생겼다영어로",
+"tags": [
+"phrase",
+"line"
+],
+"w": 560,
+"h": 105
+},
+{
+"file": "line_phrase_23.png",
+"name": "어느날아침",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 534,
+"h": 171
+},
+{
+"file": "line_phrase_24.png",
+"name": "사랑한다고말할수밖에없는얼굴",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 224
+},
+{
+"file": "line_phrase_25.png",
+"name": "낭뒤",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 140
+},
+{
+"file": "line_phrase_26.png",
+"name": "예술이라니",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 137
+},
+{
+"file": "line_phrase_27.png",
+"name": "얼레벌레내인생",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 133
+},
+{
+"file": "line_phrase_28.png",
+"name": "둥근해미친거또떴네",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 115
+},
+{
+"file": "line_phrase_29.png",
+"name": "고양이사랑단",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 187,
+"h": 560
+},
+{
+"file": "line_phrase_30.png",
+"name": "저는홈프로텍터입니다",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 397
+},
+{
+"file": "line_phrase_31.png",
+"name": "구라겠지",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 317,
+"h": 560
+},
+{
+"file": "line_phrase_32.png",
+"name": "정신력1카페인99",
+"tags": [
+"phrase",
+"line"
+],
+"w": 560,
+"h": 247
+},
+{
+"file": "line_phrase_33.png",
+"name": "아주가지가지하는구만",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 238
+},
+{
+"file": "line_phrase_34.png",
+"name": "일하기싫어요오오",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 160
+},
+{
+"file": "line_phrase_35.png",
+"name": "오늘의운세꼴등",
+"tags": [
+"phrase",
+"line"
+],
+"w": 560,
+"h": 320
+},
+{
+"file": "line_phrase_36.png",
+"name": "우우우붐따",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 305,
+"h": 560
+},
+{
+"file": "line_phrase_37.png",
+"name": "억까를멈춰주시겠어요",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 212
+},
+{
+"file": "line_phrase_38.png",
+"name": "방전배터리구름",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 549,
+"h": 348
+},
+{
+"file": "line_phrase_39.png",
+"name": "행복한사람이승자다",
+"tags": [
+"phrase",
+"line"
+],
+"w": 312,
+"h": 560
+},
+{
+"file": "line_phrase_40.png",
+"name": "나는포기를모르는개구리인걸",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 177
+},
+{
+"file": "line_phrase_41.png",
+"name": "한준 토끼라벨",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 260,
+"h": 560
+},
+{
+"file": "line_phrase_42.png",
+"name": "스트레스마법의법칙",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 560,
+"h": 246
+},
+{
+"file": "line_phrase_43.png",
+"name": "행복한사람이승자다",
+"tags": [
+"phrase",
+"line",
+"face"
+],
+"w": 313,
+"h": 560
+},
+{
+"file": "line_frame_01.png",
+"name": "하치와레 라벨",
+"tags": [
+"frame",
+"line"
+],
+"w": 560,
+"h": 230
+},
+{
+"file": "line_frame_02.png",
+"name": "창문 프레임",
+"tags": [
+"frame",
+"line"
+],
+"w": 560,
+"h": 224
+},
+{
+"file": "line_frame_03.png",
+"name": "물결 캐릭터",
+"tags": [
+"frame",
+"line"
+],
+"w": 560,
+"h": 227
+},
+{
+"file": "line_frame_04.png",
+"name": "모몽가 라벨",
+"tags": [
+"frame",
+"line"
+],
+"w": 560,
+"h": 225
+},
+{
+"file": "line_frame_05.png",
+"name": "고양이 라벨",
+"tags": [
+"frame",
+"line"
+],
+"w": 390,
+"h": 560
+},
+{
+"file": "line_frame_06.png",
+"name": "동물 말풍선 6종",
+"tags": [
+"frame",
+"line"
+],
+"w": 560,
+"h": 518
+},
+{
+"file": "line_frame_07.png",
+"name": "라벨 테두리 모음",
+"tags": [
+"frame",
+"line"
+],
+"w": 414,
+"h": 560
+},
+{
+"file": "line_frame_08.png",
+"name": "긴 라벨",
+"tags": [
+"frame",
+"line"
+],
+"w": 240,
+"h": 560
+},
+{
+"file": "line_frame_09.png",
+"name": "물결 테두리",
+"tags": [
+"frame",
+"line"
+],
+"w": 560,
+"h": 238
+},
+{
+"file": "line_frame_10.png",
+"name": "태그 모음",
+"tags": [
+"frame",
+"line"
+],
+"w": 459,
+"h": 560
+}
+]

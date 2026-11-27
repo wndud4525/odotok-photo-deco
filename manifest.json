@@ -1,0 +1,13 @@
+{
+  "name": "챡 × 오뜨 사진꾸미기",
+  "short_name": "챡×오뜨",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F7F4EC",
+  "theme_color": "#F7F4EC",
+  "orientation": "portrait",
+  "icons": [
+    {"src": "icon-180.png", "sizes": "180x180", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}

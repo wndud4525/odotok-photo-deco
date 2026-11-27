@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#F7F4EC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="챡×오뜨">
+<title>챡 × 오뜨 사진꾸미기</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">챡<i>×</i>오뜨</span>
+      <span class="tagline">사진꾸미기</span>
+    </div>
+    <div class="top-actions">
+      <button class="ic-btn" id="btnUndo" title="실행취소" aria-label="실행취소">↺</button>
+      <button class="ic-btn" id="btnRedo" title="다시실행" aria-label="다시실행">↻</button>
+      <button class="save-btn" id="btnSave">저장</button>
+    </div>
+  </header>
+
+  <section class="stage" id="stage">
+    <canvas id="cv" width="1080" height="1350"></canvas>
+
+    <div class="empty" id="emptyState">
+      <div class="empty-card">
+        <div class="empty-star">✦</div>
+        <p class="empty-title">사진을 골라주세요</p>
+        <p class="empty-sub">아이폰 사진첩에서 바로 불러와요</p>
+        <button class="primary-btn" id="btnPickPhoto">사진 불러오기</button>
+        <p class="empty-hint">사진 없이도 스티커·문구만 얹을 수 있어요</p>
+      </div>
+    </div>
+
+    <div class="selbar" id="selbar" hidden>
+      <button data-act="dup" title="복제">⧉</button>
+      <button data-act="front" title="맨 앞으로">▲</button>
+      <button data-act="back" title="맨 뒤로">▼</button>
+      <button data-act="edit" title="글씨 편집" id="selEditBtn">✎</button>
+      <button data-act="del" title="삭제" class="danger">✕</button>
+    </div>
+
+    <input type="file" id="filePhoto" accept="image/*" hidden>
+    <input type="file" id="fileSticker" accept="image/*" hidden>
+  </section>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="photo" class="active"><em>◫</em><span>사진</span></button>
+    <button data-tab="text"><em>Aa</em><span>글씨</span></button>
+    <button data-tab="box"><em>▣</em><span>박스</span></button>
+    <button data-tab="bubble"><em>❝</em><span>말풍선</span></button>
+    <button data-tab="sticker"><em>✿</em><span>스티커</span></button>
+    <button data-tab="deco"><em>♪</em><span>데코</span></button>
+    <button data-tab="phrase"><em>✎</em><span>문구</span></button>
+    <button data-tab="emoji"><em>☺</em><span>이모지</span></button>
+  </nav>
+
+  <section class="panel" id="panel"><!-- filled by js --></section>
+
+  <div class="sheet" id="saveSheet" hidden>
+    <div class="sheet-bg" data-close></div>
+    <div class="sheet-body">
+      <div class="sheet-grip"></div>
+      <h3>저장하기</h3>
+      <p class="sheet-desc" id="saveDesc">고화질 PNG로 저장해요. 인스타 스토리·피드에 바로 올릴 수 있어요.</p>
+      <button class="sheet-btn primary" id="btnDownload">PNG로 저장</button>
+      <button class="sheet-btn" id="btnShare">공유하기 (인스타·카톡)</button>
+      <button class="sheet-btn" id="btnCopy" hidden>이미지 복사</button>
+      <button class="sheet-btn ghost" data-close>닫기</button>
+      <p class="sheet-tip">아이폰: 저장 후 ‘사진’ 앱에 들어가요. 안 보이면 파일 앱 → 다운로드 확인.</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+</div>
+<script src="js/presets.js"></script>
+<script src="js/phrases-data.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
